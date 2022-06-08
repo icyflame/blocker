@@ -54,18 +54,23 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	if b.Decider.IsDomainBlocked(domain, questionType) {
 		// TODO: Count up a metric here for blocked domains
 
+		// TODO: This answer should be calculated based on the type of query
 		emptyAnswer := &dns.A{
 			Hdr: dns.RR_Header{
 				Name:   domain,
-				Ttl:    2,
 				Class:  dns.ClassINET,
 				Rrtype: questionType,
 			},
 			A: net.IPv4zero,
 		}
 
-		r.Answer = []dns.RR{emptyAnswer}
-		w.WriteMsg(r)
+		response := &dns.Msg{
+			Answer: []dns.RR{
+				emptyAnswer,
+			},
+		}
+		response.SetReply(r)
+		w.WriteMsg(response)
 		return dns.RcodeSuccess, nil
 	}
 
