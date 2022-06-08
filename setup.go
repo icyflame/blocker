@@ -11,16 +11,28 @@ import (
 )
 
 const PluginName = "blocker"
+const RequiredArgs = 1
 
 func init() {
 	plugin.Register(PluginName, setup)
 }
 
 func setup(c *caddy.Controller) error {
-	// TODO: Infer this from arguments given to this plugin
-	filePath := "/home/siddharth/.bashrc"
+	var args []string
+	c.NextArg() // Skip the name of the plugin, which is returned as an argument
+	for c.NextArg() {
+		args = append(args, c.Val())
+	}
 
-	decider, err := PrepareBlocklist(filePath)
+	if len(args) < RequiredArgs {
+		// Any errors returned from this setup function should be wrapped with plugin.Error, so we
+		// can present a slightly nicer error message to the user.
+		return plugin.Error(PluginName, c.ArgErr())
+	}
+
+	blocklistFilePath := args[0]
+
+	decider, err := PrepareBlocklist(blocklistFilePath)
 	if err != nil {
 		return plugin.Error(PluginName, err)
 	}
