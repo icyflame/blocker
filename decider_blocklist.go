@@ -29,6 +29,6 @@ func PrepareBlocklist(filePath string) (BlockDomainsDecider, error) {
 }
 
 // IsDomainBlocked ...
-func (d *BlocklistBasedDecider) IsDomainBlocked(domain string, questionType uint16) bool {
+func (d *BlocklistBasedDecider) IsDomainBlocked(domain string) bool {
 	return d.Blocklist[domain]
 }
