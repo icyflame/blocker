@@ -17,11 +17,19 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
+	// TODO: Infer this from arguments given to this plugin
+	filePath := "/home/siddharth/.bashrc"
+
+	decider, err := PrepareBlocklist(filePath)
+	if err != nil {
+		return plugin.Error(PluginName, err)
+	}
+
 	// Add the Plugin to CoreDNS, so Servers can use it in their plugin chain.
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		return Blocker{
 			Next:    next,
-			Decider: DefaultBlockDomainsDecider{},
+			Decider: decider,
 		}
 	})
 
@@ -80,17 +88,4 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 // Name ...
 func (b Blocker) Name() string {
 	return PluginName
-}
-
-type DefaultBlockDomainsDecider struct {
-	blockedDomains []string
-}
-
-// IsBlocked ...
-func (d DefaultBlockDomainsDecider) IsDomainBlocked(domain string, questionType uint16) bool {
-	if questionType != dns.TypeA {
-		return false
-	}
-
-	return domain == "fb.com."
 }
