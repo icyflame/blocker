@@ -11,7 +11,7 @@ import (
 )
 
 const PluginName = "blocker"
-const RequiredArgs = 1
+const RequiredArgs = 2
 
 func init() {
 	plugin.Register(PluginName, setup)
@@ -31,8 +31,9 @@ func setup(c *caddy.Controller) error {
 	}
 
 	blocklistFilePath := args[0]
+	blocklistUpdateFrequency := args[1]
 
-	decider, shutdownHooks, err := PrepareBlocklist(blocklistFilePath)
+	decider, shutdownHooks, err := PrepareBlocklist(blocklistFilePath, blocklistUpdateFrequency)
 	if err != nil {
 		return plugin.Error(PluginName, err)
 	}

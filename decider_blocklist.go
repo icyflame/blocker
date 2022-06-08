@@ -17,8 +17,13 @@ type BlocklistBasedDecider struct {
 }
 
 // PrepareBlocklist ...
-func PrepareBlocklist(filePath string) (BlockDomainsDecider, []func() error, error) {
+func PrepareBlocklist(filePath string, blocklistUpdateFrequency string) (BlockDomainsDecider, []func() error, error) {
 	_, err := os.Stat(filePath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	frequency, err := time.ParseDuration(blocklistUpdateFrequency)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -28,7 +33,11 @@ func PrepareBlocklist(filePath string) (BlockDomainsDecider, []func() error, err
 		BlocklistFile: filePath,
 	}
 
-	ticker := time.NewTicker(time.Second)
+	// Always update the blocklist when the server starts up
+	decider.UpdateBlocklist()
+
+	// Setup periodic updation of the blocklist
+	ticker := time.NewTicker(frequency)
 	decider.StartBlocklistUpdater(ticker)
 
 	stopTicker := func() error {
