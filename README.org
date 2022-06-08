@@ -1,0 +1,4 @@
+#+TITLE: Domain Blocker Plugin for CoreDNS
+
+This repository is a CoreDNS plugin which can be used to block a list of domains which are provided
+using a data store.
