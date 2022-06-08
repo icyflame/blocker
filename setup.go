@@ -61,7 +61,7 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 				Class:  dns.ClassINET,
 				Rrtype: questionType,
 			},
-			A: net.IP([]byte{0, 0, 0, 0}),
+			A: net.IPv4zero,
 		}
 
 		r.Answer = []dns.RR{emptyAnswer}
