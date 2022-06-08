@@ -32,9 +32,13 @@ func setup(c *caddy.Controller) error {
 
 	blocklistFilePath := args[0]
 
-	decider, err := PrepareBlocklist(blocklistFilePath)
+	decider, shutdownHooks, err := PrepareBlocklist(blocklistFilePath)
 	if err != nil {
 		return plugin.Error(PluginName, err)
+	}
+
+	for _, hook := range shutdownHooks {
+		c.OnShutdown(hook)
 	}
 
 	// Add the Plugin to CoreDNS, so Servers can use it in their plugin chain.
