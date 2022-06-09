@@ -14,10 +14,11 @@ type BlocklistBasedDecider struct {
 	Blocklist     map[string]bool
 	BlocklistFile string
 	LastUpdated   time.Time
+	Log           Logger
 }
 
 // PrepareBlocklist ...
-func PrepareBlocklist(filePath string, blocklistUpdateFrequency string) (BlockDomainsDecider, []func() error, error) {
+func PrepareBlocklist(filePath string, blocklistUpdateFrequency string, logger Logger) (BlockDomainsDecider, []func() error, error) {
 	_, err := os.Stat(filePath)
 	if err != nil {
 		return nil, nil, err
@@ -31,6 +32,7 @@ func PrepareBlocklist(filePath string, blocklistUpdateFrequency string) (BlockDo
 	decider := &BlocklistBasedDecider{
 		Blocklist:     map[string]bool{},
 		BlocklistFile: filePath,
+		Log:           logger,
 	}
 
 	// Always update the blocklist when the server starts up
@@ -41,7 +43,7 @@ func PrepareBlocklist(filePath string, blocklistUpdateFrequency string) (BlockDo
 	decider.StartBlocklistUpdater(ticker)
 
 	stopTicker := func() error {
-		fmt.Println("Ticker was stopped.")
+		fmt.Println("[INFO] Ticker was stopped.")
 		ticker.Stop()
 		return nil
 	}
@@ -63,13 +65,13 @@ func (d *BlocklistBasedDecider) StartBlocklistUpdater(ticker *time.Ticker) {
 	go func() {
 		for true {
 			tick := <-ticker.C
-			fmt.Println("Ticker arrived at time: ", tick)
+			d.Log.Debugf("Ticker arrived at time: %v", tick)
 
 			if d.IsBlocklistUpdateRequired() {
-				fmt.Println("update required")
+				d.Log.Debug("update required")
 				d.UpdateBlocklist()
 			} else {
-				fmt.Println("update not required")
+				d.Log.Debug("update not required")
 			}
 		}
 	}()
@@ -80,7 +82,7 @@ func (d *BlocklistBasedDecider) UpdateBlocklist() error {
 	// Update process
 	blocklistContent, err := os.Open(d.BlocklistFile)
 	if err != nil {
-		fmt.Println("[ERROR] could not read blocklist file", d.BlocklistFile)
+		d.Log.Errorf("could not read blocklist file: %s", d.BlocklistFile)
 		return err
 	}
 	defer blocklistContent.Close()
@@ -91,7 +93,7 @@ func (d *BlocklistBasedDecider) UpdateBlocklist() error {
 		comps := strings.Split(hostLine, " ")
 		if len(comps) < 2 {
 			// Bad line in the input file
-			fmt.Println("[WARN] unformatted line present in the input file: ", hostLine)
+			d.Log.Warningf("unformatted line present in the input file: %s", hostLine)
 			continue
 		}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
+	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/miekg/dns"
 )
 
@@ -33,7 +34,9 @@ func setup(c *caddy.Controller) error {
 	blocklistFilePath := args[0]
 	blocklistUpdateFrequency := args[1]
 
-	decider, shutdownHooks, err := PrepareBlocklist(blocklistFilePath, blocklistUpdateFrequency)
+	logger := clog.NewWithPlugin(PluginName)
+
+	decider, shutdownHooks, err := PrepareBlocklist(blocklistFilePath, blocklistUpdateFrequency, logger)
 	if err != nil {
 		return plugin.Error(PluginName, err)
 	}
