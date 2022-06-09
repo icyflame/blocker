@@ -91,6 +91,9 @@ func (d *BlocklistBasedDecider) UpdateBlocklist() error {
 	}
 	defer blocklistContent.Close()
 
+	numBlockedDomainsBefore := len(d.Blocklist)
+	lastUpdatedBefore := d.LastUpdated
+
 	scanner := bufio.NewScanner(blocklistContent)
 	for scanner.Scan() {
 		hostLine := scanner.Text()
@@ -106,6 +109,10 @@ func (d *BlocklistBasedDecider) UpdateBlocklist() error {
 	}
 
 	d.LastUpdated = time.Now()
+
+	d.Log.Infof("updated blocklist; blocked domains: before: %d, after: %d; last updated: before: %v, after: %v",
+		numBlockedDomainsBefore, len(d.Blocklist), lastUpdatedBefore, d.LastUpdated)
+
 	return nil
 }
 
