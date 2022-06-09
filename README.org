@@ -1,4 +1,4 @@
-#+TITLE: blocker - Domain Blocker Plugin for CoreDNS
+#+TITLE: blocker - Domain blocker plugin for CoreDNS
 
 =blocker= is a CoreDNS plugin which can be used to block a list of domains provided in the
 =/etc/hosts= file format. The blocklist will be loaded into memory at start-up and the file's
