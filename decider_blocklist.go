@@ -10,6 +10,10 @@ import (
 	"github.com/miekg/dns"
 )
 
+type BlockDomainsDecider interface {
+	IsDomainBlocked(domain string) bool
+}
+
 type BlocklistBasedDecider struct {
 	Blocklist     map[string]bool
 	BlocklistFile string
