@@ -82,3 +82,15 @@ specified in the blocklist and forward everything else to a full DNS server.
 	forward . 127.0.0.1:9053
   }
 #+end_src
+
+** plugin.cfg
+
+This is a sample middleware configuration file. The order of plugins here is important. This is the
+order in which plugins will be executed for incoming requests.
+
+#+begin_src conf
+  prometheus:metrics
+  log:log
+  blocker:blocker
+  forward:forward
+#+end_src
