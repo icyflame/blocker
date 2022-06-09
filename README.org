@@ -1,4 +1,50 @@
-#+TITLE: Domain Blocker Plugin for CoreDNS
+#+TITLE: blocker - Domain Blocker Plugin for CoreDNS
 
-This repository is a CoreDNS plugin which can be used to block a list of domains which are provided
-using a data store.
+=blocker= is a CoreDNS plugin which can be used to block a list of domains provided in the
+=/etc/hosts= file format. The blocklist will be loaded into memory at start-up and the file's
+modified time will be checked periodically. When the blocklist file is updated, the in-memory
+blocklist will be updated by scanning the blocklist file.
+
+Updating the blocklist file is beyond the scope of this plugin. I recommend a bash script which
+downloads [[https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts][common]] [[http://hosts.oisd.nl/][blocklists]] and updates them into a format without comments.  The script
+[[file:blocklist-file-preparer.sh]] included with this repository is an example of how this can be done
+using bash and GNU utils.
+
+*Example blocklist file:*
+
+#+begin_src text
+  0.0.0.0 buyer.revsci.net
+  0.0.0.0 ww92.impfr.tradedoubler.com
+  0.0.0.0 next.chartboost.com
+  0.0.0.0 pl16442154.alternativecpmgate.com
+  0.0.0.0 denturesauaid.com
+  0.0.0.0 pdx-p-con-336.saas.appdynamics.com
+  0.0.0.0 cdn.ad.citynews.it
+  0.0.0.0 xxxxxxxamob.acs86.com
+  0.0.0.0 www.globalhotsale.su
+  0.0.0.0 zipuploads.com
+#+end_src
+
+* Usage
+
+You can include blocker in your CoreDNS just as you would include any other CoreDNS plugin.
+
+#+begin_src sh
+  # Clone coredns to a local location
+  $ git clone git@github.com:coredns/coredns.git ~/dns-server/coredns
+
+  # Clone blocker plugin to a close location
+  $ git clone git@github.com:icyflame/blocker.git ~/dns-server/blocker
+
+  # Symlink blocker location into coredns/plugin/blocker
+  $ cd ~/dns-server/coredns/plugin
+  $ ln -s ../blocker ./blocker
+
+  # Update plugin.cfg and put the line "blocker:blocker" before the "forward:forward" line
+
+  # Build CoreDNS
+  $ cd ~/dns-server/coredns
+  $ go generate
+  $ make
+  $ ./coredns -conf Corefile
+#+end_src
