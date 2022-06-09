@@ -41,8 +41,6 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	// IPv6
 	domain := question.Name
 	if b.Decider.IsDomainBlocked(domain) {
-		// TODO(monitoring): Count up a metric here for blocked requests
-
 		response := &dns.Msg{
 			Answer: []dns.RR{
 				GetEmptyAnswerForQuestionType(questionType, domain),
@@ -53,7 +51,6 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		return dns.RcodeSuccess, nil
 	}
 
-	// TODO(monitoring): Count up a metric here for forwarded requests
 	return b.Next.ServeDNS(ctx, w, r)
 }
 
