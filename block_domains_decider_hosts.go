@@ -10,10 +10,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-type BlockDomainsDecider interface {
-	IsDomainBlocked(domain string) bool
-}
-
 type BlocklistBasedDecider struct {
 	Blocklist     map[string]bool
 	BlocklistFile string
@@ -22,7 +18,7 @@ type BlocklistBasedDecider struct {
 }
 
 // PrepareBlocklist ...
-func PrepareBlocklist(filePath string, blocklistUpdateFrequency string, logger Logger) (BlockDomainsDecider, []func() error, error) {
+func PrepareBlocklist(filePath string, blocklistUpdateFrequency string, blocklistType string, logger Logger) (BlockDomainsDecider, []func() error, error) {
 	_, err := os.Stat(filePath)
 	if err != nil {
 		return nil, nil, err
