@@ -26,7 +26,7 @@ func PrepareBlocklist(filePath string, blocklistUpdateFrequency string, blocklis
 		return nil, nil, err
 	}
 
-	decider := &BlocklistBasedDecider{
+	decider := &BlockDomainsDeciderHosts{
 		Blocklist:     map[string]bool{},
 		BlocklistFile: filePath,
 		Log:           logger,

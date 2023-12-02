@@ -9,7 +9,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-type BlocklistBasedDecider struct {
+type BlockDomainsDeciderHosts struct {
 	Blocklist     map[string]bool
 	BlocklistFile string
 	LastUpdated   time.Time
@@ -17,12 +17,12 @@ type BlocklistBasedDecider struct {
 }
 
 // IsDomainBlocked ...
-func (d *BlocklistBasedDecider) IsDomainBlocked(domain string) bool {
+func (d *BlockDomainsDeciderHosts) IsDomainBlocked(domain string) bool {
 	return d.Blocklist[domain]
 }
 
 // StartBlocklistUpdater ...
-func (d *BlocklistBasedDecider) StartBlocklistUpdater(ticker *time.Ticker) {
+func (d *BlockDomainsDeciderHosts) StartBlocklistUpdater(ticker *time.Ticker) {
 	go func() {
 		for true {
 			tick := <-ticker.C
@@ -39,7 +39,7 @@ func (d *BlocklistBasedDecider) StartBlocklistUpdater(ticker *time.Ticker) {
 }
 
 // UpdateBlocklist ...
-func (d *BlocklistBasedDecider) UpdateBlocklist() error {
+func (d *BlockDomainsDeciderHosts) UpdateBlocklist() error {
 	// Update process
 	blocklistContent, err := os.Open(d.BlocklistFile)
 	if err != nil {
@@ -74,7 +74,7 @@ func (d *BlocklistBasedDecider) UpdateBlocklist() error {
 }
 
 // IsBlocklistUpdateRequired ...
-func (d *BlocklistBasedDecider) IsBlocklistUpdateRequired() bool {
+func (d *BlockDomainsDeciderHosts) IsBlocklistUpdateRequired() bool {
 	blocklistFileStat, _ := os.Stat(d.BlocklistFile)
 	return blocklistFileStat.ModTime().After(d.LastUpdated)
 }
