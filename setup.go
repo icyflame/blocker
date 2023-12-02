@@ -8,7 +8,7 @@ import (
 )
 
 const PluginName = "blocker"
-const RequiredArgs = 2
+const RequiredArgs = 3
 
 func init() {
 	plugin.Register(PluginName, setup)
@@ -29,10 +29,11 @@ func setup(c *caddy.Controller) error {
 
 	blocklistFilePath := args[0]
 	blocklistUpdateFrequency := args[1]
+	blocklistType := args[2]
 
 	logger := clog.NewWithPlugin(PluginName)
 
-	decider, shutdownHooks, err := PrepareBlocklist(blocklistFilePath, blocklistUpdateFrequency, logger)
+	decider, shutdownHooks, err := PrepareBlocklist(blocklistFilePath, blocklistUpdateFrequency, blocklistType, logger)
 	if err != nil {
 		return plugin.Error(PluginName, err)
 	}
