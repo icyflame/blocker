@@ -10,15 +10,24 @@ import (
 )
 
 type BlockDomainsDeciderHosts struct {
-	Blocklist     map[string]bool
-	BlocklistFile string
-	LastUpdated   time.Time
-	Log           Logger
+	blocklist     map[string]bool
+	blocklistFile string
+	lastUpdated   time.Time
+	log           Logger
+}
+
+// Name ...
+func NewBlockDomainsDeciderHosts(filePath string, logger Logger) BlockDomainsDecider {
+	return &BlockDomainsDeciderHosts{
+		blocklistFile: filePath,
+		log:           logger,
+		blocklist:     map[string]bool{},
+	}
 }
 
 // IsDomainBlocked ...
 func (d *BlockDomainsDeciderHosts) IsDomainBlocked(domain string) bool {
-	return d.Blocklist[domain]
+	return d.blocklist[domain]
 }
 
 // StartBlocklistUpdater ...
@@ -26,13 +35,13 @@ func (d *BlockDomainsDeciderHosts) StartBlocklistUpdater(ticker *time.Ticker) {
 	go func() {
 		for true {
 			tick := <-ticker.C
-			d.Log.Debugf("Ticker arrived at time: %v", tick)
+			d.log.Debugf("Ticker arrived at time: %v", tick)
 
 			if d.IsBlocklistUpdateRequired() {
-				d.Log.Debug("update required")
+				d.log.Debug("update required")
 				d.UpdateBlocklist()
 			} else {
-				d.Log.Debug("update not required")
+				d.log.Debug("update not required")
 			}
 		}
 	}()
@@ -41,15 +50,15 @@ func (d *BlockDomainsDeciderHosts) StartBlocklistUpdater(ticker *time.Ticker) {
 // UpdateBlocklist ...
 func (d *BlockDomainsDeciderHosts) UpdateBlocklist() error {
 	// Update process
-	blocklistContent, err := os.Open(d.BlocklistFile)
+	blocklistContent, err := os.Open(d.blocklistFile)
 	if err != nil {
-		d.Log.Errorf("could not read blocklist file: %s", d.BlocklistFile)
+		d.log.Errorf("could not read blocklist file: %s", d.blocklistFile)
 		return err
 	}
 	defer blocklistContent.Close()
 
-	numBlockedDomainsBefore := len(d.Blocklist)
-	lastUpdatedBefore := d.LastUpdated
+	numBlockedDomainsBefore := len(d.blocklist)
+	lastUpdatedBefore := d.lastUpdated
 
 	scanner := bufio.NewScanner(blocklistContent)
 	for scanner.Scan() {
@@ -57,24 +66,24 @@ func (d *BlockDomainsDeciderHosts) UpdateBlocklist() error {
 		comps := strings.Split(hostLine, " ")
 		if len(comps) < 2 {
 			// Bad line in the input file
-			d.Log.Warningf("unformatted line present in the input file: %s", hostLine)
+			d.log.Warningf("unformatted line present in the input file: %s", hostLine)
 			continue
 		}
 
 		domain := comps[1]
-		d.Blocklist[dns.Fqdn(domain)] = true
+		d.blocklist[dns.Fqdn(domain)] = true
 	}
 
-	d.LastUpdated = time.Now()
+	d.lastUpdated = time.Now()
 
-	d.Log.Infof("updated blocklist; blocked domains: before: %d, after: %d; last updated: before: %v, after: %v",
-		numBlockedDomainsBefore, len(d.Blocklist), lastUpdatedBefore, d.LastUpdated)
+	d.log.Infof("updated blocklist; blocked domains: before: %d, after: %d; last updated: before: %v, after: %v",
+		numBlockedDomainsBefore, len(d.blocklist), lastUpdatedBefore, d.lastUpdated)
 
 	return nil
 }
 
 // IsBlocklistUpdateRequired ...
 func (d *BlockDomainsDeciderHosts) IsBlocklistUpdateRequired() bool {
-	blocklistFileStat, _ := os.Stat(d.BlocklistFile)
-	return blocklistFileStat.ModTime().After(d.LastUpdated)
+	blocklistFileStat, _ := os.Stat(d.blocklistFile)
+	return blocklistFileStat.ModTime().After(d.lastUpdated)
 }
