@@ -10,7 +10,7 @@ downloads [[https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts][co
 [[file:blocklist-file-preparer.sh]] included with this repository is an example of how this can be done
 using bash and GNU utils.
 
-*Example blocklist file:*
+*Example blocklist file:* (hosts blocklist file type)
 
 #+begin_src text
   0.0.0.0 buyer.revsci.net
@@ -61,7 +61,7 @@ The frequency is specified as a string and the value should be a valid argument 
 [[https://pkg.go.dev/time#ParseDuration][time.ParseDuration]] function.
 
 #+begin_src conf
-  blocker /home/user/blocklist_file 1h
+  blocker /home/user/blocklist_file 1h hosts
 #+end_src
 
 This is a sample Corefile including the =blocker= directive. It will block domains that are
@@ -76,7 +76,7 @@ specified in the blocklist and forward everything else to a full DNS server.
 	log
 
 	# blocker blocks domains which are specified in the blocklist
-	blocker /home/user/blocklist_file 1h
+	blocker /home/user/blocklist_file 1h hosts
 
 	# forward handles any request that is not blocked by blocker
 	forward . 127.0.0.1:9053
