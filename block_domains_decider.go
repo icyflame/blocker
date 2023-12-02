@@ -6,8 +6,12 @@ import (
 	"time"
 )
 
+// BlockDomainsDecider is the interface which must be implemented by any type which intends to
+// become a blocker. The purpose of each of the functions is described below.
 type BlockDomainsDecider interface {
 	IsDomainBlocked(domain string) bool
+	StartBlocklistUpdater(ticker *time.Ticker)
+	UpdateBlocklist() error
 }
 
 type BlocklistType string
@@ -26,11 +30,7 @@ func PrepareBlocklist(filePath string, blocklistUpdateFrequency string, blocklis
 		return nil, nil, err
 	}
 
-	decider := &BlockDomainsDeciderHosts{
-		Blocklist:     map[string]bool{},
-		BlocklistFile: filePath,
-		Log:           logger,
-	}
+	decider := NewBlockDomainsDeciderHosts(filePath, logger)
 
 	// Always update the blocklist when the server starts up
 	decider.UpdateBlocklist()
