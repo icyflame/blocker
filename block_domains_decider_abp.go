@@ -52,7 +52,7 @@ func (d *BlockDomainsDeciderABP) IsDomainBlocked(domain string) bool {
 // StartBlocklistUpdater ...
 func (d *BlockDomainsDeciderABP) StartBlocklistUpdater(ticker *time.Ticker) {
 	go func() {
-		for true {
+		for {
 			tick := <-ticker.C
 			d.log.Debugf("Ticker arrived at time: %v", tick)
 
