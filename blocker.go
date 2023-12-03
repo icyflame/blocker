@@ -5,12 +5,24 @@ import (
 	"net"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/metadata"
+	"github.com/coredns/coredns/request"
 	"github.com/miekg/dns"
 )
 
 type Blocker struct {
 	Next    plugin.Handler
 	Decider BlockDomainsDecider
+}
+
+const MetadataRequestBlocked = "blocker/request-blocked"
+
+// Metadata implements the Metadata plugin's required interface in the blocker function.
+func (b Blocker) Metadata(ctx context.Context, state request.Request) context.Context {
+	metadata.SetValueFunc(ctx, MetadataRequestBlocked, func() string {
+		return "NO"
+	})
+	return ctx
 }
 
 func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
@@ -25,6 +37,10 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	// TODO: After some time, check if clients are making non-A/AAAA requests to the DNS server. I
 	// don't think of any reason a browser should request anything except the IP address for a
 	// domain. But I don't want to block everything right away.
+	//
+	// One thing that I should keep in mind is that some domains have CNAMEs in order to cloak their
+	// real purpose. So, if this is CNAME, and the domain matches the known list of CNAME trackers,
+	// then the request should be blocked as well.
 	//
 	// Do the same thing for question class (INET)
 	questionType := question.Qtype
@@ -48,6 +64,9 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		}
 		response.SetReply(r)
 		w.WriteMsg(response)
+		metadata.SetValueFunc(ctx, MetadataRequestBlocked, func() string {
+			return "YES"
+		})
 		return dns.RcodeSuccess, nil
 	}
 
@@ -67,7 +86,6 @@ func GetEmptyAnswerForQuestionType(questionType uint16, domain string) dns.RR {
 		Rrtype: questionType,
 	}
 	if questionType == dns.TypeAAAA {
-
 		return &dns.AAAA{
 			Hdr:  responseHeader,
 			AAAA: net.IPv6zero,
