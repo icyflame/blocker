@@ -30,7 +30,6 @@ func (d *BlockDomainsDeciderABP) IsDomainBlocked(domain string) bool {
 	// We will check every subdomain of the given domain against the blocklist. i.e. if example.com
 	// is blocked, then every subdomain of that (subdomain.example.com, sub1.sub2.example.com) is
 	// blocked. However, example.com.org is not blocked.
-	d.log.Infof("requested domain: %s", domain)
 	comps := strings.Split(domain, ".")
 	current := comps[len(comps)-1]
 	for i := len(comps) - 2; i >= 0; i-- {
