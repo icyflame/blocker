@@ -13,14 +13,14 @@ EOF
 	exit 43
 fi
 
-wget -O list.oisd.nl.abp --header 'accept: text/plain' https://big.oisd.nl
+curl --silent --header 'accept: text/plain' https://big.oisd.nl > list.oisd.nl.abp
 echo "Hosts from oisd big: $(wc -l list.oisd.nl.abp)"
 
 # This list is not offered in the ABP format. It blocks some domains which are already blocked by
 # the Big OISD list. However, I am not sure how many of the domains in the StevenBlack list are
 # blocked by OISD. I have not calculated this yet. So, for now, I will continue to merge this list
 # into the OISD list.
-wget -O list.stevenblack.hosts --header 'accept: test/plain' https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+curl --silent --header 'accept: test/plain' https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts > list.stevenblack.hosts
 rm -f list.stevenblack.hosts.cleaned
 cat list.stevenblack.hosts | rg '^0.0.0.0' | sed 's#0.0.0.0 ##g' | sed 's#^#||#g' | sed 's#$#^#g' > list.stevenblack.abp
 echo "Hosts from stevenblack: $(wc -l list.stevenblack.abp)"
