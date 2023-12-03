@@ -17,6 +17,7 @@ type BlockDomainsDecider interface {
 type BlocklistType string
 
 const BlocklistType_Hosts BlocklistType = "hosts"
+const BlocklistType_ABP BlocklistType = "abp"
 
 // PrepareBlocklist ...
 func PrepareBlocklist(filePath string, blocklistUpdateFrequency string, blocklistType string, logger Logger) (BlockDomainsDecider, []func() error, error) {
@@ -30,7 +31,13 @@ func PrepareBlocklist(filePath string, blocklistUpdateFrequency string, blocklis
 		return nil, nil, err
 	}
 
-	decider := NewBlockDomainsDeciderHosts(filePath, logger)
+	var decider BlockDomainsDecider
+	switch BlocklistType(blocklistType) {
+	case BlocklistType_Hosts:
+		decider = NewBlockDomainsDeciderHosts(filePath, logger)
+	case BlocklistType_ABP:
+		decider = NewBlockDomainsDeciderABP(filePath, logger)
+	}
 
 	// Always update the blocklist when the server starts up
 	decider.UpdateBlocklist()
