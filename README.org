@@ -10,19 +10,19 @@ downloads [[https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts][co
 [[file:blocklist-file-preparer.sh]] included with this repository is an example of how this can be done
 using bash and GNU utils.
 
-*Example blocklist file:* (hosts blocklist file type)
+*Example blocklist file:* ([[https://github.com/AdguardTeam/AdGuardHome/wiki/Hosts-Blocklists#adblock-style][AdBlock Plus syntax]])
 
 #+begin_src text
-  0.0.0.0 buyer.revsci.net
-  0.0.0.0 ww92.impfr.tradedoubler.com
-  0.0.0.0 next.chartboost.com
-  0.0.0.0 pl16442154.alternativecpmgate.com
-  0.0.0.0 denturesauaid.com
-  0.0.0.0 pdx-p-con-336.saas.appdynamics.com
-  0.0.0.0 cdn.ad.citynews.it
-  0.0.0.0 xxxxxxxamob.acs86.com
-  0.0.0.0 www.globalhotsale.su
-  0.0.0.0 zipuploads.com
+  ||buyer.revsci.net^
+  ||ww92.impfr.tradedoubler.com^
+  ||next.chartboost.com^
+  ||pl16442154.alternativecpmgate.com^
+  ||denturesauaid.com^
+  ||pdx-p-con-336.saas.appdynamics.com^
+  ||cdn.ad.citynews.it^
+  ||xxxxxxxamob.acs86.com^
+  ||www.globalhotsale.su^
+  ||zipuploads.com^
 #+end_src
 
 * Usage
@@ -61,7 +61,7 @@ The frequency is specified as a string and the value should be a valid argument 
 [[https://pkg.go.dev/time#ParseDuration][time.ParseDuration]] function.
 
 #+begin_src conf
-  blocker /home/user/blocklist_file 1h hosts
+  blocker /home/user/blocklist_file 1h abp
 #+end_src
 
 This is a sample Corefile including the =blocker= directive. It will block domains that are
@@ -69,11 +69,16 @@ specified in the blocklist and forward everything else to a full DNS server.
 
 #+begin_src conf
   .:53 {
-    # prometheus records metrics regarding incoming requests
+	metadata
+
+	# prometheus records metrics regarding incoming requests
 	prometheus
 
-    # log writes 1 line to the log for every DNS request
-	log
+	# log writes 1 line to the log for every DNS request
+	# The last word in the log line will be YES if the request was blocked and NO if it was not
+	# blocked.
+	# This behaviour is supported by the metadata plugin.
+	log . "{common} {/blocker/request-blocked}"
 
 	# blocker blocks domains which are specified in the blocklist
 	blocker /home/user/blocklist_file 1h hosts
@@ -89,6 +94,7 @@ This is a sample middleware configuration file. The order of plugins here is imp
 order in which plugins will be executed for incoming requests.
 
 #+begin_src conf
+  metadata:metadata
   prometheus:metrics
   log:log
   blocker:blocker
