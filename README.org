@@ -100,3 +100,12 @@ order in which plugins will be executed for incoming requests.
   blocker:blocker
   forward:forward
 #+end_src
+
+
+* Interaction with Other CoreDNS Plugins
+
+** =metadata=
+
+The blocker plugin will write the metadata value with the label =blocker/request-blocked=. This is a
+boolean value whose value will be either =YES= (if the request was blocked and the empty IP address
+was returned as a result to the user) and =NO= when the request was not blocked.
