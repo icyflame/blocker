@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 OUTFILE=$1
 if [[ -z "$OUTFILE" ]];
