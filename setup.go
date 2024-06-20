@@ -8,7 +8,7 @@ import (
 )
 
 const PluginName = "blocker"
-const RequiredArgs = 3
+const RequiredArgs = 4
 
 func init() {
 	plugin.Register(PluginName, setup)
@@ -30,6 +30,11 @@ func setup(c *caddy.Controller) error {
 	blocklistFilePath := args[0]
 	blocklistUpdateFrequency := args[1]
 	blocklistType := args[2]
+	blocklistResponseType := args[3]
+
+	if blocklistResponseType != "empty" && blocklistResponseType != "nxdomain" {
+		return plugin.Error(PluginName, c.ArgErr())
+	}
 
 	logger := clog.NewWithPlugin(PluginName)
 
@@ -45,8 +50,9 @@ func setup(c *caddy.Controller) error {
 	// Add the Plugin to CoreDNS, so Servers can use it in their plugin chain.
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
 		return Blocker{
-			Next:    next,
-			Decider: decider,
+			Next:         next,
+			Decider:      decider,
+			ResponseType: blocklistResponseType,
 		}
 	})
 

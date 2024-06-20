@@ -53,15 +53,16 @@ You can include blocker in your CoreDNS just as you would include any other Core
 
 ** Corefile
 
-The =blocker= directive inside Corefile requires two arguments. The first argument is the absolute
+The =blocker= directive inside Corefile requires three arguments. The first argument is the absolute
 path to the blocklist file. The second argument is the frequency at which the blocklist file is
-checked for updates.
+checked for updates. The third is the response type from the plugin, either =empty= for a valid DNS 
+response with 0.0.0.0 or ::6 or =nxdomain= to respond with a DNS empty response.
 
 The frequency is specified as a string and the value should be a valid argument to the
 [[https://pkg.go.dev/time#ParseDuration][time.ParseDuration]] function.
 
 #+begin_src conf
-  blocker /home/user/blocklist_file 1h abp
+  blocker /home/user/blocklist_file 1h abp empty
 #+end_src
 
 This is a sample Corefile including the =blocker= directive. It will block domains that are
@@ -81,7 +82,7 @@ specified in the blocklist and forward everything else to a full DNS server.
 	log . "{common} {/blocker/request-blocked}"
 
 	# blocker blocks domains which are specified in the blocklist
-	blocker /home/user/blocklist_file 1h hosts
+	blocker /home/user/blocklist_file 1h hosts empty
 
 	# forward handles any request that is not blocked by blocker
 	forward . 127.0.0.1:9053
