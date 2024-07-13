@@ -1,14 +1,14 @@
 #+TITLE: blocker - Domain blocker plugin for CoreDNS
 
-=blocker= is a CoreDNS plugin which can be used to block a list of domains provided in the
-=/etc/hosts= file format. The blocklist will be loaded into memory at start-up and the file's
-modified time will be checked periodically. When the blocklist file is updated, the in-memory
-blocklist will be updated by scanning the blocklist file.
+=blocker= is a CoreDNS plugin which can be used to block a list of domains provided in the AdBlock
+Plus syntax format. The blocklist will be loaded into memory at start-up and the file's modified
+time will be checked periodically. When the blocklist file is updated, the in-memory blocklist will
+be updated by scanning the blocklist file line-by-line.
 
-Updating the blocklist file is beyond the scope of this plugin. I recommend a bash script which
-downloads [[https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts][common]] [[http://hosts.oisd.nl/][blocklists]] and updates them into a format without comments.  The script
+Updating the blocklist file itself is beyond the scope of this plugin. I recommend a bash script
+which downloads [[https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts][common]] [[http://hosts.oisd.nl/][blocklists]] and updates them into a format without comments. The script
 [[file:blocklist-file-preparer.sh]] included with this repository is an example of how this can be done
-using bash and GNU utils.
+using bash and common GNU utilities.
 
 *Example blocklist file:* ([[https://github.com/AdguardTeam/AdGuardHome/wiki/Hosts-Blocklists#adblock-style][AdBlock Plus syntax]])
 
@@ -29,7 +29,7 @@ using bash and GNU utils.
 
 ** CoreDNS Binary
 
-You can include blocker in your CoreDNS just as you would include any other CoreDNS plugin.
+You can include blocker in the CoreDNS code just as you would include any other CoreDNS plugin.
 
 #+begin_src sh
   # Clone coredns to a local location
@@ -53,18 +53,19 @@ You can include blocker in your CoreDNS just as you would include any other Core
 
 ** Corefile
 
-The =blocker= directive inside Corefile requires two arguments. The first argument is the absolute
+The =blocker= directive inside Corefile requires three arguments. The first argument is the absolute
 path to the blocklist file. The second argument is the frequency at which the blocklist file is
-checked for updates.
+checked for updates. The third argument is the type of blocklist file (=hosts= and =abp= are the
+only two values which are supported at this time.)
 
-The frequency is specified as a string and the value should be a valid argument to the
+The frequency is specified as a string and the value should be a valid argument of the
 [[https://pkg.go.dev/time#ParseDuration][time.ParseDuration]] function.
 
 #+begin_src conf
   blocker /home/user/blocklist_file 1h abp
 #+end_src
 
-This is a sample Corefile including the =blocker= directive. It will block domains that are
+The following is a sample Corefile including the =blocker= directive. It will block domains that are
 specified in the blocklist and forward everything else to a full DNS server.
 
 #+begin_src conf
@@ -81,7 +82,7 @@ specified in the blocklist and forward everything else to a full DNS server.
 	log . "{common} {/blocker/request-blocked}"
 
 	# blocker blocks domains which are specified in the blocklist
-	blocker /home/user/blocklist_file 1h hosts
+	blocker /home/user/blocklist_file 1h abp
 
 	# forward handles any request that is not blocked by blocker
 	forward . 127.0.0.1:9053
@@ -101,7 +102,6 @@ order in which plugins will be executed for incoming requests.
   forward:forward
 #+end_src
 
-
 * Interaction with Other CoreDNS Plugins
 
 ** =metadata=
@@ -109,3 +109,31 @@ order in which plugins will be executed for incoming requests.
 The blocker plugin will write the metadata value with the label =blocker/request-blocked=. This is a
 boolean value whose value will be either =YES= (if the request was blocked and the empty IP address
 was returned as a result to the user) and =NO= when the request was not blocked.
+
+* Release Binaries
+
+For tags which are published to this repository, the GitHub Actions workflow
+=./.github/workflows/build-binary.yml= builds binaries using the latest Go version for Linux under
+the three most popular architectures: AMD64, ARM (32 bit), and ARM64. The =tar.gz= files contain a
+Checksum file which can be used together with =sha256sum= to verify the integrity of the binary.
+
+#+begin_src sh
+  $ wget https://github.com/icyflame/blocker/releases/download/v0.0.1-alpha/coredns-linux-amd64.tar.gz
+  ...
+  coredns-linux-amd64.tar.gz            100%[=======================================================================>]   5.16M   610KB/s    in 14s
+
+  2024-07-13 12:26:05 (390 KB/s) - ‘coredns-linux-amd64.tar.gz’ saved [5414731/5414731]
+
+  $ tar tvf coredns-linux-amd64.tar.gz
+  -rwxr-xr-x runner/docker 14110872 2024-07-13 12:26 coredns-linux-amd64
+  -rw-r--r-- runner/docker       86 2024-07-13 12:26 coredns-linux-amd64.checksum
+
+  $ tar zxf coredns-linux-amd64.tar.gz
+
+  $ sha256sum -c coredns-linux-amd64.checksum
+  coredns-linux-amd64: OK
+
+  $ ./coredns-linux-amd64 -version
+  CoreDNS-1.11.1
+  linux/amd64, go1.22.5, Blocker plugin refs/tags/v0.0.1-alpha 1e6061ee8b7d2ad2ee5c632d3b91851c00481453
+#+end_src
