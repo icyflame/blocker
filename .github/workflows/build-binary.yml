@@ -1,0 +1,92 @@
+name: Build Binary
+
+on:
+  push:
+    # Enable after development is completed.
+    # tags:
+    #   - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        go-version: [ '1.22.5' ]
+        os-flavor: [ 'linux' ]
+        architecture: [ 'amd64', 'arm', 'arm64' ]
+        path-to-build: [ './cmd/email-random' ]
+
+    steps:
+      # You can test your matrix by printing the current Go version
+      - name: Display Go version
+        run: go version
+      # Fetch the coredns repository first
+      - name: Fetch the coredns repository at a tag
+        uses: actions/checkout@v4
+        with:
+          repository: 'coredns/coredns'
+          ref: 'v1.11.1'
+      # Fetch this repository first
+      - name: Fetch the present repository
+        uses: actions/checkout@v4
+        with:
+          path: './plugin/blocker'
+      - name: Move plugin.cfg to the top level
+        run: |
+          ls -lsh plugin.cfg
+          head plugin.cfg
+          mv ./plugin/blocker/plugin.cfg ./plugin.cfg
+          ls -lsh plugin.cfg
+          head plugin.cfg
+      - name: Test everything works well
+        run: |
+          ls -lsh coredns
+          ls -lsh coredns/plugin
+          ls -lsh coredns/plugin/blocker/
+      # Caching is enabled by default when using setup-go
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Generate plugin configuration based things and make binary
+        run: |
+          OUTPUT_FILE_NAME="./$(basename ${{ matrix.path-to-build }})-${{ matrix.os-flavor }}-${{ matrix.architecture }}"
+          go generate
+          make BINARY=$OUTPUT_FILE_NAME
+          file ./$OUTPUT_FILE_NAME
+      # - name: Build binary for the given paths
+      #   id: build-binary
+      #   run: |
+      #     echo "Ref: ${{ github.ref }}; Commit: $GITHUB_SHA"
+
+      #     OUTPUT_FILE_NAME="./$(basename ${{ matrix.path-to-build }})-${{ matrix.os-flavor }}-${{ matrix.architecture }}"
+
+      #     GOOS=${{ matrix.os-flavor }} GOARCH=${{ matrix.architecture }} \
+      #       go build \
+      #       -ldflags="-X \"github.com/icyflame/kindle-my-clippings-parser/internal/env.Version=${{ github.ref }} $GITHUB_SHA\"" \
+      #       -o $OUTPUT_FILE_NAME ${{ matrix.path-to-build }}
+
+      #     sha256sum $OUTPUT_FILE_NAME > $OUTPUT_FILE_NAME.checksum
+
+      #     file ./$OUTPUT_FILE_NAME
+      #     file ./$OUTPUT_FILE_NAME.checksum
+
+      #     chmod 755 ./$OUTPUT_FILE_NAME
+      #     chmod 644 ./$OUTPUT_FILE_NAME.checksum
+
+      #     tar --create --gzip --file ./$OUTPUT_FILE_NAME.tar.gz ./$OUTPUT_FILE_NAME ./$OUTPUT_FILE_NAME.checksum
+
+      #     ls -lsh .
+
+      #     {
+      #         echo 'OUTPUT_FILES<<EOF'
+      #         echo $OUTPUT_FILE_NAME.tar.gz
+      #         echo EOF
+      #     } >> "$GITHUB_OUTPUT"
+      # - name: Upload binaries if a tag was pushed
+      #   uses: softprops/action-gh-release@v2
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   with:
+      #     files: ${{ steps.build-binary.outputs.OUTPUT_FILES }}
