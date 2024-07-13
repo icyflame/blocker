@@ -1,0 +1,74 @@
+name: Build Binary
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        go-version: [ '1.22.5' ]
+        os-flavor: [ 'linux' ]
+        architecture: [ 'amd64', 'arm', 'arm64' ]
+
+    steps:
+      # Fetch the coredns repository first. This is expanded at ./
+      - name: Fetch the coredns repository at a tag
+        uses: actions/checkout@v4
+        with:
+          repository: 'coredns/coredns'
+          ref: 'v1.11.1'
+      # Fetch this repository next. It is put inside ./plugin/blocker/
+      - name: Fetch the present repository
+        uses: actions/checkout@v4
+        with:
+          path: './plugin/blocker'
+      - name: Move plugin.cfg from blocker plugin to the top level (coredns level)
+        run: |
+          mv ./plugin/blocker/plugin.cfg ./plugin.cfg
+      # Caching is enabled by default when using setup-go
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Build binary of CoreDNS
+        id: build-binary
+        run: |
+          echo "Ref: ${{ github.ref }}; Commit: $GITHUB_SHA"
+
+          OUTPUT_FILE_NAME="coredns-${{ matrix.os-flavor }}-${{ matrix.architecture }}"
+
+          go generate
+
+          GOOS=${{ matrix.os-flavor }} GOARCH=${{ matrix.architecture }} CGO_ENABLED=0 \
+            go build \
+            -ldflags="-s -w -X \"github.com/coredns/coredns/coremain.GitCommit=Blocker plugin ${{ github.ref }} $GITHUB_SHA\"" \
+            -o $OUTPUT_FILE_NAME
+
+          sha256sum $OUTPUT_FILE_NAME > $OUTPUT_FILE_NAME.checksum
+
+          file $OUTPUT_FILE_NAME
+          file $OUTPUT_FILE_NAME.checksum
+
+          chmod 755 $OUTPUT_FILE_NAME
+          chmod 644 $OUTPUT_FILE_NAME.checksum
+
+          tar --create --gzip --file $OUTPUT_FILE_NAME.tar.gz $OUTPUT_FILE_NAME $OUTPUT_FILE_NAME.checksum
+
+          ls -lsh .
+
+          {
+              echo 'OUTPUT_FILES<<EOF'
+              echo $OUTPUT_FILE_NAME.tar.gz
+              echo EOF
+          } >> "$GITHUB_OUTPUT"
+      - name: Upload binaries if a tag was pushed
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ steps.build-binary.outputs.OUTPUT_FILES }}
