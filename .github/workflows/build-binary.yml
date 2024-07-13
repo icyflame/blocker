@@ -2,9 +2,8 @@ name: Build Binary
 
 on:
   push:
-    # Enable after development is completed.
-    # tags:
-    #   - v*
+    tags:
+      - v*
 
 jobs:
   build:
