@@ -42,9 +42,9 @@ jobs:
           head plugin.cfg
       - name: Test everything works well
         run: |
-          ls -lsh coredns
-          ls -lsh coredns/plugin
-          ls -lsh coredns/plugin/blocker/
+          ls -lsh .
+          ls -lsh ./plugin
+          ls -lsh ./plugin/blocker/
       # Caching is enabled by default when using setup-go
       - name: Setup Go ${{ matrix.go-version }}
         uses: actions/setup-go@v5
