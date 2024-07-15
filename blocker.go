@@ -11,8 +11,9 @@ import (
 )
 
 type Blocker struct {
-	Next    plugin.Handler
-	Decider BlockDomainsDecider
+	Next         plugin.Handler
+	Decider      BlockDomainsDecider
+	ResponseType string
 }
 
 const MetadataRequestBlocked = "blocker/request-blocked"
@@ -57,17 +58,28 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	// IPv6
 	domain := question.Name
 	if b.Decider.IsDomainBlocked(domain) {
-		response := &dns.Msg{
-			Answer: []dns.RR{
-				GetEmptyAnswerForQuestionType(questionType, domain),
-			},
+		switch b.ResponseType {
+		case "empty":
+			response := &dns.Msg{
+				Answer: []dns.RR{
+					GetEmptyAnswerForQuestionType(questionType, domain),
+				},
+			}
+			response.SetReply(r)
+			w.WriteMsg(response)
+			metadata.SetValueFunc(ctx, MetadataRequestBlocked, func() string {
+				return "YES"
+			})
+			return dns.RcodeSuccess, nil
+		case "nxdomain":
+			response := &dns.Msg{}
+			response.SetRcode(r, dns.RcodeNameError)
+			w.WriteMsg(response)
+			metadata.SetValueFunc(ctx, MetadataRequestBlocked, func() string {
+				return "YES"
+			})
+			return dns.RcodeNameError, nil
 		}
-		response.SetReply(r)
-		w.WriteMsg(response)
-		metadata.SetValueFunc(ctx, MetadataRequestBlocked, func() string {
-			return "YES"
-		})
-		return dns.RcodeSuccess, nil
 	}
 
 	return b.Next.ServeDNS(ctx, w, r)
