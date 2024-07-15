@@ -30,9 +30,12 @@ func setup(c *caddy.Controller) error {
 	blocklistFilePath := args[0]
 	blocklistUpdateFrequency := args[1]
 	blocklistType := args[2]
-	blocklistResponseType := args[3]
+	if blocklistType != string(BlocklistType_Hosts) && blocklistType != string(BlocklistType_ABP) {
+		return plugin.Error(PluginName, c.ArgErr())
+	}
 
-	if blocklistResponseType != "empty" && blocklistResponseType != "nxdomain" {
+	blocklistResponseType := args[3]
+	if blocklistResponseType != string(ResponseType_Empty) && blocklistResponseType != string(ResponseType_NXDOMAIN) {
 		return plugin.Error(PluginName, c.ArgErr())
 	}
 

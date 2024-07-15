@@ -16,6 +16,13 @@ type Blocker struct {
 	ResponseType string
 }
 
+type ResponseType string
+
+const (
+	ResponseType_Empty    ResponseType = "empty"
+	ResponseType_NXDOMAIN ResponseType = "nxdomain"
+)
+
 const MetadataRequestBlocked = "blocker/request-blocked"
 
 // Metadata implements the Metadata plugin's required interface in the blocker function.
@@ -58,8 +65,8 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	// IPv6
 	domain := question.Name
 	if b.Decider.IsDomainBlocked(domain) {
-		switch b.ResponseType {
-		case "empty":
+		switch ResponseType(b.ResponseType) {
+		case ResponseType_Empty:
 			response := &dns.Msg{
 				Answer: []dns.RR{
 					GetEmptyAnswerForQuestionType(questionType, domain),
@@ -71,7 +78,8 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 				return "YES"
 			})
 			return dns.RcodeSuccess, nil
-		case "nxdomain":
+
+		case ResponseType_NXDOMAIN:
 			response := &dns.Msg{}
 			response.SetRcode(r, dns.RcodeNameError)
 			w.WriteMsg(response)
