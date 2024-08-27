@@ -23,7 +23,7 @@ curl --silent --header 'accept: test/plain' https://raw.githubusercontent.com/St
 
 wait
 
-cat list.stevenblack.hosts | rg '^0.0.0.0' | sed 's#0.0.0.0 ##g' | sed 's#^#||#g' | sed 's#$#^#g' > list.stevenblack.abp
+cat list.stevenblack.hosts | grep -E '^0.0.0.0' | sed 's#0.0.0.0 ##g' | sed 's#^#||#g' | sed 's#$#^#g' > list.stevenblack.abp
 
 echo "Hosts from icyflame: $(wc -l list.icyflame.abp)"
 echo "Hosts from oisd big: $(wc -l list.oisd.nl.abp)"
