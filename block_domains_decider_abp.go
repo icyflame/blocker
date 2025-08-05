@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/miekg/dns"
@@ -11,6 +12,7 @@ import (
 
 type BlockDomainsDeciderABP struct {
 	blocklist     map[string]bool
+	blocklistMu   sync.RWMutex
 	blocklistFile string
 	lastUpdated   time.Time
 	log           Logger
@@ -22,6 +24,7 @@ func NewBlockDomainsDeciderABP(filePath string, logger Logger) BlockDomainsDecid
 		blocklistFile: filePath,
 		log:           logger,
 		blocklist:     map[string]bool{},
+		blocklistMu:   sync.RWMutex{},
 	}
 }
 
@@ -30,6 +33,8 @@ func (d *BlockDomainsDeciderABP) IsDomainBlocked(domain string) bool {
 	// We will check every subdomain of the given domain against the blocklist. i.e. if example.com
 	// is blocked, then every subdomain of that (subdomain.example.com, sub1.sub2.example.com) is
 	// blocked. However, example.com.org is not blocked.
+	d.blocklistMu.RLock() // RLock is efficient for concurrent read-only access
+	defer d.blocklistMu.RUnlock()
 	comps := strings.Split(domain, ".")
 	current := comps[len(comps)-1]
 	for i := len(comps) - 2; i >= 0; i-- {
@@ -75,9 +80,7 @@ func (d *BlockDomainsDeciderABP) UpdateBlocklist() error {
 	}
 	defer blocklistContent.Close()
 
-	numBlockedDomainsBefore := len(d.blocklist)
-	lastUpdatedBefore := d.lastUpdated
-
+	newBlocklist := make(map[string]bool)
 	scanner := bufio.NewScanner(blocklistContent)
 	for scanner.Scan() {
 		hostLine := scanner.Text()
@@ -88,10 +91,18 @@ func (d *BlockDomainsDeciderABP) UpdateBlocklist() error {
 
 		hostLine = strings.TrimPrefix(hostLine, "||")
 		hostLine = strings.TrimSuffix(hostLine, "^")
-		d.blocklist[dns.Fqdn(hostLine)] = true
+		newBlocklist[dns.Fqdn(hostLine)] = true
 	}
 
+	d.blocklistMu.Lock()
+
+	numBlockedDomainsBefore := len(d.blocklist)
+	lastUpdatedBefore := d.lastUpdated
+
+	d.blocklist = newBlocklist
 	d.lastUpdated = time.Now()
+
+	d.blocklistMu.Unlock()
 
 	d.log.Infof("updated blocklist; blocked domains: before: %d, after: %d; last updated: before: %v, after: %v",
 		numBlockedDomainsBefore, len(d.blocklist), lastUpdatedBefore, d.lastUpdated)

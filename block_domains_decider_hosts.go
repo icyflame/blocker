@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/miekg/dns"
@@ -11,6 +12,7 @@ import (
 
 type BlockDomainsDeciderHosts struct {
 	blocklist     map[string]bool
+	blocklistMu   sync.RWMutex
 	blocklistFile string
 	lastUpdated   time.Time
 	log           Logger
@@ -22,11 +24,14 @@ func NewBlockDomainsDeciderHosts(filePath string, logger Logger) BlockDomainsDec
 		blocklistFile: filePath,
 		log:           logger,
 		blocklist:     map[string]bool{},
+		blocklistMu:   sync.RWMutex{},
 	}
 }
 
 // IsDomainBlocked ...
 func (d *BlockDomainsDeciderHosts) IsDomainBlocked(domain string) bool {
+	d.blocklistMu.RLock()
+	defer d.blocklistMu.RUnlock()
 	return d.blocklist[domain]
 }
 
@@ -57,9 +62,7 @@ func (d *BlockDomainsDeciderHosts) UpdateBlocklist() error {
 	}
 	defer blocklistContent.Close()
 
-	numBlockedDomainsBefore := len(d.blocklist)
-	lastUpdatedBefore := d.lastUpdated
-
+	newBlocklist := make(map[string]bool)
 	scanner := bufio.NewScanner(blocklistContent)
 	for scanner.Scan() {
 		hostLine := scanner.Text()
@@ -71,10 +74,18 @@ func (d *BlockDomainsDeciderHosts) UpdateBlocklist() error {
 		}
 
 		domain := comps[1]
-		d.blocklist[dns.Fqdn(domain)] = true
+		newBlocklist[dns.Fqdn(domain)] = true
 	}
 
+	d.blocklistMu.Lock()
+
+	numBlockedDomainsBefore := len(d.blocklist)
+	lastUpdatedBefore := d.lastUpdated
+
+	d.blocklist = newBlocklist
 	d.lastUpdated = time.Now()
+
+	d.blocklistMu.Unlock()
 
 	d.log.Infof("updated blocklist; blocked domains: before: %d, after: %d; last updated: before: %v, after: %v",
 		numBlockedDomainsBefore, len(d.blocklist), lastUpdatedBefore, d.lastUpdated)
