@@ -170,3 +170,79 @@ following process should be followed to run these unit tests:
 
 During development, making changes to the ~blocker~ plugin, after the above process, makes it easier
 to run tests and use the Go language server features such as jumping to definition.
+
+** Testing the DNS server
+
+Apart from unit tests, benchmarking tools can be used to verify whether CoreDNS works with a large
+volume of DNS requests. This is the setup that I use to run benchmarks using [[https://github.com/AskMediaGroup/dnsbench][dnsbench]].
+
+First, follow the process in the ~Usage > CoreDNS Binary~ section to create a CoreDNS binary which
+contains the blocker plugin.
+
+Second, start the CoreDNS server using the following configuration:
+
+#+begin_src conf
+  $ cat Corefile.benchmark.conf
+  .:5335 {
+	  metadata
+	  log . "{common} {/blocker/request-blocked}"
+	  blocker /home/siddharth/code/open-source/coredns/blocklist.benchmark 1s abp nxdomain
+	  forward . 8.8.8.8
+  }
+
+  $ touch blocklist.benchmark
+
+  $ ./coredns -conf Corefile.benchmark.conf
+  maxprocs: Leaving GOMAXPROCS=8: CPU quota undefined
+  [INFO] plugin/blocker: updated blocklist; blocked domains: before: 0, after: 0; last updated: before: 0001-01-01 00:00:00 +0000 UTC, after: 2025-08-09 12:10:31.479348779 +0900 JST m=+0.026230377
+  .:5335
+  CoreDNS-1.12.3
+  linux/amd64, go1.24.5, 463fd1c1b-dirty
+#+end_src
+
+Third, run the following one liner which simulates updating the block list:
+
+#+begin_src sh
+  $ truncate --size 0 blocklist.benchmark; for i in `seq 101 10000`; do sleep 1; echo "||baddomain-$i.example.com^" >> blocklist.benchmark; echo "$(date): Iteration $i DONE"; done;
+  Sat 09 Aug 2025 12:11:30 PM JST: Iteration 1 DONE
+  Sat 09 Aug 2025 12:11:31 PM JST: Iteration 2 DONE
+  Sat 09 Aug 2025 12:11:32 PM JST: Iteration 3 DONE
+  [snip]
+#+end_src
+
+A new domain will be written to the blocklist file every second, and the Blocker plugin will
+constantly update this file, printing logs such as this one:
+
+#+begin_src sh
+  [INFO] plugin/blocker: updated blocklist; blocked domains: before: 58, after: 59; last updated: before: 2025-08-09 12:12:28.480451154 +0900 JST m=+117.027332732, after: 2025-08-09 12:12:29.47975636 +0900 JST m=+118.026637938
+#+end_src
+
+Finally, install and run the ~dnsbench~ tool against this CoreDNS server:
+
+#+begin_src sh
+  # Prepare a list of domain names
+  $ truncate --size 0 domain-names.benchmark; for i in `seq 1 200`; do echo "baddomain-$i.example.com" >> domain-names.benchmark; done;
+
+  $ dnsbench run --nameserver '127.0.0.1:5335' --names domain-names.benchmark --count=10000
+  # requests errors min  [ p50  p95  p99  p999] max  qps
+	 1421     382   4.71    [6.23 265.95 523.76 809.50] 809.50  284.20
+	 1550     422   4.91    [6.09 253.89 475.27 740.82] 740.82  310.00
+	 1562     426   4.84    [6.11 254.54 476.32 738.72] 738.72  312.40
+	 1293     353   4.93    [6.14 268.30 529.53 771.23] 771.23  258.60
+	 1403     383   4.81    [6.09 263.98 525.34 786.96] 786.96  280.60
+	 1539     419   4.87    [6.06 263.19 508.82 743.96] 743.96  307.80
+
+  Finished 10000 requests
+
+  # latency summary
+	10000    2727   4.71    [6.11 264.90 493.09 809.50] 809.50  290.18
+
+  Concurrency level: 10
+  Time taken for tests: 34.464370221s
+  Completed Requests: 7273
+  Failed Requests: 2727
+  Requests per second: -0.0000 [#/sec] (mean)
+  Time per request: 34.04 [ms] (mean)
+  Fastest request: 4.71 [ms]
+  Slowest request: 809.50 [ms]
+#+end_src
