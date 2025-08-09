@@ -139,3 +139,34 @@ Checksum file which can be used together with =sha256sum= to verify the integrit
   CoreDNS-1.11.1
   linux/amd64, go1.22.5, Blocker plugin refs/tags/v0.0.1-alpha 1e6061ee8b7d2ad2ee5c632d3b91851c00481453
 #+end_src
+
+* Development
+
+** Running Tests
+
+This plugin contains unit tests. These unit tests are run as part of the unit tests for CoreDNS. The
+following process should be followed to run these unit tests:
+
+#+begin_src sh
+  # Clone CoreDNS
+  $ git clone git@github.com:coredns/coredns.git /tmp/dns-server/coredns
+
+  # Clone this plugin
+  git clone git@github.com:icyflame/blocker.git /tmp/dns-server/blocker
+
+  # Link this plugin into CoreDNS
+  ln -s /tmp/dns-server/blocker /tmp/dns-server/coredns/plugin/blocker
+
+  # Run tests for this plugin
+  cd /tmp/dns-server/coredns
+
+  go test -v -count=1 ./plugin/blocker
+  === RUN   TestIsDomainBlocked_ABP
+  === RUN   TestIsDomainBlocked_ABP/base_case
+  [snip]
+  PASS
+  ok      github.com/coredns/coredns/plugin/blocker       0.005s
+#+end_src
+
+During development, making changes to the ~blocker~ plugin, after the above process, makes it easier
+to run tests and use the Go language server features such as jumping to definition.
