@@ -13,3 +13,16 @@ type Logger interface {
 	Warning(v ...interface{})
 	Warningf(format string, v ...interface{})
 }
+
+type nopLogger struct{}
+
+func (nopLogger) Error(v ...any)                   {}
+func (nopLogger) Errorf(format string, v ...any)   {}
+func (nopLogger) Warning(v ...any)                 {}
+func (nopLogger) Warningf(format string, v ...any) {}
+func (nopLogger) Info(v ...any)                    {}
+func (nopLogger) Infof(format string, v ...any)    {}
+func (nopLogger) Debug(v ...any)                   {}
+func (nopLogger) Debugf(format string, v ...any)   {}
+func (nopLogger) Fatal(v ...any)                   {}
+func (nopLogger) Fatalf(format string, v ...any)   {}
