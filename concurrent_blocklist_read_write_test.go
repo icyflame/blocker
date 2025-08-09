@@ -7,8 +7,7 @@ import (
 	"testing"
 )
 
-// PoC for concurrent map read/write bug in BlockDomainsDeciderABP
-// At the same time a test for thread-safe access to the blocklist
+// A test which verifies thread-safe access to the blocklist
 func TestConcurrentBlocklistAccess_PoC(t *testing.T) {
 	// Create a temporary blocklist file
 	f, err := os.CreateTemp("", "blocklist-*.txt")
