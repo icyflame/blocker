@@ -112,6 +112,24 @@ The blocker plugin will write the metadata value with the label =blocker/request
 boolean value whose value will be either =YES= (if the request was blocked and the empty IP address
 was returned as a result to the user) and =NO= when the request was not blocked.
 
+** =prometheus= (=metrics=)
+
+When the =prometheus= [[https://coredns.io/plugins/metrics/][plugin]] is enabled, the blocker plugin will record 2 [[https://prometheus.io/docs/concepts/metric_types/#counter][Counter]] metrics,
+representing the allowed and blocked DNS request count. These metrics can be fetched by setting up
+Prometheus to scrape from port 9153 on the interface where CoreDNS is running.
+
+Metric values can be verified by making a HTTP request to the ~/metrics~ endpoint:
+
+#+begin_src sh
+  $ curl -s 127.0.0.1:9153/metrics | rg requests_total
+  # HELP coredns_blocker_allowed_requests_total Counter of DNS requests being allowed.
+  # TYPE coredns_blocker_allowed_requests_total counter
+  coredns_blocker_allowed_requests_total 2
+  # HELP coredns_blocker_blocked_requests_total Counter of DNS requests being blocked.
+  # TYPE coredns_blocker_blocked_requests_total counter
+  coredns_blocker_blocked_requests_total 3
+#+end_src
+
 * Release Binaries
 
 For tags which are published to this repository, the GitHub Actions workflow
