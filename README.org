@@ -108,9 +108,9 @@ order in which plugins will be executed for incoming requests.
 
 ** =metadata=
 
-The blocker plugin will write the metadata value with the label =blocker/request-blocked=. This is a
-boolean value whose value will be either =YES= (if the request was blocked and the empty IP address
-was returned as a result to the user) and =NO= when the request was not blocked.
+The blocker plugin will write a [[https://coredns.io/plugins/metadata/][metadata value]] with the label =blocker/request-blocked=. This is a
+boolean value whose value will be either =YES= (if the request was blocked) or =NO= when the request
+was not blocked.
 
 ** =prometheus= (=metrics=)
 
