@@ -65,6 +65,7 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	// IPv6
 	domain := question.Name
 	if b.Decider.IsDomainBlocked(domain) {
+		RequestBlockCount.Inc()
 		switch ResponseType(b.ResponseType) {
 		case ResponseType_Empty:
 			response := &dns.Msg{
@@ -89,6 +90,7 @@ func (b Blocker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 			return dns.RcodeNameError, nil
 		}
 	}
+	RequestAllowCount.Inc()
 
 	return b.Next.ServeDNS(ctx, w, r)
 }

@@ -84,6 +84,9 @@ func (d *BlockDomainsDeciderABP) UpdateBlocklist() error {
 	scanner := bufio.NewScanner(blocklistContent)
 	for scanner.Scan() {
 		hostLine := scanner.Text()
+		if strings.HasPrefix(hostLine, "!") {
+			continue
+		}
 		if !strings.HasPrefix(hostLine, "||") || !strings.HasSuffix(hostLine, "^") {
 			d.log.Warningf("line \"%s\" does not match parseable ABP syntax subset", hostLine)
 			continue
